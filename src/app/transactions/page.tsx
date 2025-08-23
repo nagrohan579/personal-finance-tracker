@@ -298,26 +298,93 @@ export default function TransactionsPage() {
         </Card>
       </motion.div>
 
-      {/* Transactions Table */}
+      {/* Transactions */}
       <motion.div variants={itemVariants}>
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">All Transactions ({filteredTransactions.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[100px]">Date</TableHead>
-                    <TableHead className="min-w-[120px]">Account</TableHead>
-                    <TableHead className="min-w-[100px]">Category</TableHead>
-                    <TableHead className="min-w-[100px]">Type</TableHead>
-                    <TableHead className="min-w-[100px] text-right">Amount</TableHead>
-                    <TableHead className="min-w-[150px] hidden sm:table-cell">Notes</TableHead>
-                    <TableHead className="min-w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+            {/* Mobile Cards View */}
+            <div className="lg:hidden space-y-3 p-4">
+              {filteredTransactions.map((transaction) => (
+                <motion.div
+                  key={transaction.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border rounded-lg p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">
+                      {new Date(transaction.date).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          // TODO: Implement edit functionality
+                          console.log('Edit transaction:', transaction.id)
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleDeleteTransaction(transaction.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-base">
+                        {transaction.financial_accounts?.name || 'Unknown'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {transaction.category}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${getTransferAmountColor(transaction)}`}>
+                        {getTransactionSign(transaction)}
+                        {formatCurrency(transaction.amount)}
+                      </div>
+                      <span className={`${getTypeColor(transaction.type)} text-xs font-medium px-2 py-1 rounded-full`}>
+                        {transaction.type}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {transaction.notes && (
+                    <div className="text-sm text-muted-foreground border-t pt-2">
+                      {transaction.notes}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block p-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">Date</TableHead>
+                      <TableHead className="text-left">Account</TableHead>
+                      <TableHead className="text-left">Category</TableHead>
+                      <TableHead className="text-left">Type</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-left">Notes</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                 {filteredTransactions.map((transaction) => (
                   <motion.tr
@@ -329,16 +396,16 @@ export default function TransactionsPage() {
                     <TableCell className="font-medium">
                       {new Date(transaction.date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="max-w-[120px]">
+                    <TableCell>
                       <div className="truncate">
                         {transaction.financial_accounts?.name || 'Unknown'}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-[100px]">
+                    <TableCell>
                       <div className="truncate">{transaction.category}</div>
                     </TableCell>
                     <TableCell>
-                      <span className={`${getTypeColor(transaction.type)} text-xs sm:text-sm font-medium px-2 py-1 rounded-full`}>
+                      <span className={`${getTypeColor(transaction.type)} text-sm font-medium px-2 py-1 rounded-full`}>
                         {transaction.type}
                       </span>
                     </TableCell>
@@ -348,7 +415,7 @@ export default function TransactionsPage() {
                         {formatCurrency(transaction.amount)}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell max-w-[150px]">
+                    <TableCell>
                       {transaction.notes ? (
                         <span className="truncate block">
                           {transaction.notes}
@@ -358,7 +425,7 @@ export default function TransactionsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center justify-center space-x-1">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -368,7 +435,7 @@ export default function TransactionsPage() {
                             console.log('Edit transaction:', transaction.id)
                           }}
                         >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Edit className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -376,7 +443,7 @@ export default function TransactionsPage() {
                           className="h-8 w-8 p-0"
                           onClick={() => handleDeleteTransaction(transaction.id)}
                         >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 text-destructive" />
+                          <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
@@ -384,7 +451,9 @@ export default function TransactionsPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
             </div>
+            
             {filteredTransactions.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 No transactions found.

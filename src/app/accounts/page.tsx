@@ -167,8 +167,12 @@ export default function AccountsPage() {
     if (confirm('Are you sure you want to delete this account? This will also delete all associated transactions.')) {
       try {
         await deleteAccount(id)
-        toast.success('Account deleted successfully!')
-        fetchAccounts()
+        // Use optimistic update instead of refetching
+        setAccounts(prevAccounts => prevAccounts.filter(account => account.id !== id))
+        // Small delay to ensure deletion completes
+        setTimeout(() => {
+          toast.success('Account deleted successfully!')
+        }, 100)
       } catch (error) {
         console.error('Failed to delete account:', error)
         toast.error('Failed to delete account. Please try again.')
@@ -206,12 +210,13 @@ export default function AccountsPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="p-6 space-y-6"
+      className="min-h-screen bg-background"
     >
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 lg:p-8 border-b border-border">
         <motion.h1 
           variants={itemVariants}
-          className="text-3xl font-bold"
+          className="text-2xl sm:text-3xl font-bold"
         >
           Accounts
         </motion.h1>
@@ -219,6 +224,7 @@ export default function AccountsPage() {
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
             <DialogTrigger asChild>
               <Button
+                className="w-full sm:w-auto"
                 onClick={() => {
                   setEditingAccount(null)
                   setFormData({ name: '', type: 'SAVINGS', balance: 0 })
@@ -298,126 +304,58 @@ export default function AccountsPage() {
         </motion.div>
       </div>
 
-      {/* Summary Card */}
-      <motion.div variants={itemVariants}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Total Accounts</p>
-                <p className="text-2xl font-bold">{accounts.length}</p>
+      <div className="p-4 lg:p-8 space-y-6">
+        {/* Summary Card */}
+        <motion.div variants={itemVariants}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Account Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Total Accounts</p>
+                  <p className="text-xl sm:text-2xl font-bold">{accounts.length}</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-400">
+                    {formatCurrency(totalBalance)}
+                  </p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Account Types</p>
+                  <p className="text-xl sm:text-2xl font-bold">
+                    {new Set(accounts.map(a => a.type)).size}
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Total Balance</p>
-                <p className="text-2xl font-bold text-green-400">
-                  {formatCurrency(totalBalance)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Account Types</p>
-                <p className="text-2xl font-bold">
-                  {new Set(accounts.map(a => a.type)).size}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-      {/* Accounts Grid */}
-      <motion.div variants={itemVariants}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {accounts.map((account) => {
-            const Icon = getAccountIcon(account.type)
-            return (
-              <motion.div
-                key={account.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Icon className="w-8 h-8 text-primary" />
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(account)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(account.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                    <h3 className="font-semibold text-lg mb-1">{account.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {accountTypes.find(t => t.value === account.type)?.label}
-                    </p>
-                    <p className="text-2xl font-bold text-green-400">
-                      {formatCurrency(account.balance)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
-        </div>
-      </motion.div>
-
-      {/* Accounts Table */}
-      <motion.div variants={itemVariants}>
-        <Card>
-          <CardHeader>
-            <CardTitle>All Accounts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {accounts.map((account) => {
-                  const Icon = getAccountIcon(account.type)
-                  return (
-                    <TableRow key={account.id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Icon className="w-4 h-4" />
-                          <span>{account.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {accountTypes.find(t => t.value === account.type)?.label}
-                      </TableCell>
-                      <TableCell className="font-semibold text-green-400">
-                        {formatCurrency(account.balance)}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(account.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+        {/* Accounts Grid */}
+        <motion.div variants={itemVariants}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {accounts.map((account) => {
+              const Icon = getAccountIcon(account.type)
+              return (
+                <motion.div
+                  key={account.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+                        <div className="flex space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleEdit(account)}
                           >
                             <Edit className="w-4 h-4" />
@@ -425,25 +363,103 @@ export default function AccountsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleDelete(account.id)}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
-                      </TableCell>
+                      </div>
+                      <h3 className="font-semibold text-base sm:text-lg mb-1 truncate">{account.name}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                        {accountTypes.find(t => t.value === account.type)?.label}
+                      </p>
+                      <p className="text-lg sm:text-2xl font-bold text-green-400">
+                        {formatCurrency(account.balance)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </div>
+        </motion.div>
+
+        {/* Accounts Table */}
+        <motion.div variants={itemVariants}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">All Accounts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">Name</TableHead>
+                      <TableHead className="text-left">Type</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                      <TableHead className="text-left hidden sm:table-cell">Created</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-            {accounts.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No accounts found. Create your first account to get started!
+                  </TableHeader>
+                  <TableBody>
+                    {accounts.map((account) => {
+                      const Icon = getAccountIcon(account.type)
+                      return (
+                        <TableRow key={account.id}>
+                          <TableCell className="w-auto">
+                            <div className="flex items-center space-x-2">
+                              <Icon className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">{account.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-auto">
+                            <span className="truncate">
+                              {accountTypes.find(t => t.value === account.type)?.label}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-semibold text-green-400 text-right w-auto">
+                            {formatCurrency(account.balance)}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell w-auto">
+                            {new Date(account.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="w-auto">
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleEdit(account)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleDelete(account.id)}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+              {accounts.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No accounts found. Create your first account to get started!
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </motion.div>
   )
 }

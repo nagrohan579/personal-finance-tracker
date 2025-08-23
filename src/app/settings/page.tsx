@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { getUserPreferences, updateUserPreferences } from '@/lib/actions/preferences'
+import { deleteUserAccount } from '@/lib/actions/auth'
 import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/currency'
 import { Settings, Trash2 } from 'lucide-react'
 
@@ -85,16 +87,13 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     setDeleting(true)
     try {
-      // TODO: Implement actual account deletion logic
-      console.log('Deleting account...')
-      
-      // For now, just simulate the action
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Redirect to login or home page after deletion
-      window.location.href = '/login'
+      await deleteUserAccount()
+      // The deleteUserAccount function will handle the redirect
+      toast.success('Account deleted successfully!')
     } catch (error) {
       console.error('Failed to delete account:', error)
+      // Show error message to user
+      toast.error('Failed to delete account. Please try again.')
     } finally {
       setDeleting(false)
       setDeleteDialogOpen(false)

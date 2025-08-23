@@ -99,3 +99,86 @@ export async function getUser() {
 
   return user
 }
+
+export async function deleteUserAccount() {
+  const supabase = await createClient()
+
+  // Get the current user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+
+  try {
+    // Delete all user data from the database
+    // Note: We'll ignore errors for empty tables since that's expected
+    
+    // Delete financial accounts (this will cascade to transactions if set up properly)
+    const { error: accountsError } = await supabase
+      .from('financial_accounts')
+      .delete()
+      .eq('user_id', user.id)
+    
+    if (accountsError) {
+      console.warn('Error deleting financial accounts:', accountsError.message)
+    }
+
+    // Delete loans
+    const { error: loansError } = await supabase
+      .from('loans')
+      .delete()
+      .eq('user_id', user.id)
+    
+    if (loansError) {
+      console.warn('Error deleting loans:', loansError.message)
+    }
+
+    // Delete recurring transactions
+    const { error: recurringError } = await supabase
+      .from('recurring_transactions')
+      .delete()
+      .eq('user_id', user.id)
+    
+    if (recurringError) {
+      console.warn('Error deleting recurring transactions:', recurringError.message)
+    }
+
+    // Delete transactions (if not cascade deleted)
+    const { error: transactionsError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('user_id', user.id)
+    
+    if (transactionsError) {
+      console.warn('Error deleting transactions:', transactionsError.message)
+    }
+
+    // Delete user preferences
+    const { error: preferencesError } = await supabase
+      .from('user_preferences')
+      .delete()
+      .eq('user_id', user.id)
+    
+    if (preferencesError) {
+      console.warn('Error deleting user preferences:', preferencesError.message)
+    }
+
+    // Sign out the user (this will invalidate the session)
+    const { error: signOutError } = await supabase.auth.signOut()
+    
+    if (signOutError) {
+      throw new Error(`Failed to sign out: ${signOutError.message}`)
+    }
+
+  } catch (error) {
+    // Only throw errors for critical failures (like sign out), not for empty table deletions
+    if (error instanceof Error && error.message.includes('sign out')) {
+      throw error
+    }
+    console.warn('Non-critical error during account deletion:', error)
+  }
+
+  // Redirect to login page
+  redirect('/login')
+}

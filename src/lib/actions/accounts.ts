@@ -8,15 +8,19 @@ type Account = Database['public']['Tables']['financial_accounts']['Row']
 type AccountInsert = Database['public']['Tables']['financial_accounts']['Insert']
 type AccountUpdate = Database['public']['Tables']['financial_accounts']['Update']
 
-export async function createAccount(data: Omit<AccountInsert, 'user_id'>) {
+async function getAuthenticatedUser() {
   const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
   
-  // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (authError || !user) {
+  if (error || !user) {
     throw new Error('User not authenticated')
   }
+  
+  return { supabase, user }
+}
+
+export async function createAccount(data: Omit<AccountInsert, 'user_id'>) {
+  const { supabase, user } = await getAuthenticatedUser()
 
   const { data: account, error } = await supabase
     .from('financial_accounts')
@@ -37,14 +41,7 @@ export async function createAccount(data: Omit<AccountInsert, 'user_id'>) {
 }
 
 export async function getAccounts(): Promise<Account[]> {
-  const supabase = await createClient()
-  
-  // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (authError || !user) {
-    throw new Error('User not authenticated')
-  }
+  const { supabase, user } = await getAuthenticatedUser()
 
   const { data: accounts, error } = await supabase
     .from('financial_accounts')
@@ -60,14 +57,7 @@ export async function getAccounts(): Promise<Account[]> {
 }
 
 export async function updateAccount(id: string, data: Omit<AccountUpdate, 'user_id' | 'id'>) {
-  const supabase = await createClient()
-  
-  // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (authError || !user) {
-    throw new Error('User not authenticated')
-  }
+  const { supabase, user } = await getAuthenticatedUser()
 
   const { data: account, error } = await supabase
     .from('financial_accounts')
@@ -87,14 +77,7 @@ export async function updateAccount(id: string, data: Omit<AccountUpdate, 'user_
 }
 
 export async function deleteAccount(id: string) {
-  const supabase = await createClient()
-  
-  // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  if (authError || !user) {
-    throw new Error('User not authenticated')
-  }
+  const { supabase, user } = await getAuthenticatedUser()
 
   const { error } = await supabase
     .from('financial_accounts')
@@ -105,7 +88,4 @@ export async function deleteAccount(id: string) {
   if (error) {
     throw new Error(`Failed to delete account: ${error.message}`)
   }
-
-  revalidatePath('/accounts')
-  revalidatePath('/dashboard')
 }

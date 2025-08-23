@@ -236,12 +236,13 @@ export default function LoansPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="p-6 space-y-6"
+      className="min-h-screen bg-background"
     >
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 lg:p-8 border-b border-border">
         <motion.h1 
           variants={itemVariants}
-          className="text-3xl font-bold"
+          className="text-2xl sm:text-3xl font-bold"
         >
           Loans
         </motion.h1>
@@ -249,6 +250,7 @@ export default function LoansPage() {
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
             <DialogTrigger asChild>
               <Button
+                className="w-full sm:w-auto"
                 onClick={() => {
                   setEditingLoan(null)
                   setFormData({
@@ -371,133 +373,137 @@ export default function LoansPage() {
         </motion.div>
       </div>
 
-      {/* Summary Cards */}
-      <motion.div variants={itemVariants}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Total Loans</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{loans.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Total Debt</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-red-400">
-                {formatCurrency(totalDebt)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-green-400">
-                {formatCurrency(totalOriginal - totalDebt)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </motion.div>
+      <div className="p-4 lg:p-8 space-y-6">
+        {/* Summary Cards */}
+        <motion.div variants={itemVariants}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm text-muted-foreground">Total Loans</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xl sm:text-2xl font-bold">{loans.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm text-muted-foreground">Total Debt</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xl sm:text-2xl font-bold text-red-400">
+                  {formatCurrency(totalDebt)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xl sm:text-2xl font-bold text-green-400">
+                  {formatCurrency(totalOriginal - totalDebt)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
 
-      {/* Loans Grid */}
-      <motion.div variants={itemVariants}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {loans.map((loan) => {
-            const progress = calculateProgress(loan.total_amount, loan.outstanding_balance)
-            return (
-              <motion.div
-                key={loan.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center">
-                        <PiggyBank className="w-6 h-6 text-destructive mr-2" />
-                        <h3 className="font-semibold text-lg">{loan.name}</h3>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(loan)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(loan.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Outstanding</span>
-                        <span className="font-semibold text-red-400">
-                          {formatCurrency(loan.outstanding_balance)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">EMI</span>
-                        <span className="font-semibold">
-                          {formatCurrency(loan.emi_amount)}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Progress</span>
-                          <span>{progress.toFixed(1)}%</span>
+        {/* Loans Grid */}
+        <motion.div variants={itemVariants}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+            {loans.map((loan) => {
+              const progress = calculateProgress(loan.total_amount, loan.outstanding_balance)
+              return (
+                <motion.div
+                  key={loan.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center min-w-0 flex-1">
+                          <PiggyBank className="w-5 h-5 sm:w-6 sm:h-6 text-destructive mr-2 flex-shrink-0" />
+                          <h3 className="font-semibold text-base sm:text-lg truncate">{loan.name}</h3>
                         </div>
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div
-                            className="bg-green-400 h-2 rounded-full transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
+                        <div className="flex space-x-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEdit(loan)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleDelete(loan.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
-        </div>
-      </motion.div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Outstanding</span>
+                          <span className="font-semibold text-red-400 text-sm sm:text-base">
+                            {formatCurrency(loan.outstanding_balance)}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">EMI</span>
+                          <span className="font-semibold text-sm sm:text-base">
+                            {formatCurrency(loan.emi_amount)}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Progress</span>
+                            <span>{progress.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-green-400 h-2 rounded-full transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </div>
+        </motion.div>
 
-      {/* Loans Table */}
-      <motion.div variants={itemVariants}>
-        <Card>
-          <CardHeader>
-            <CardTitle>All Loans</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead>Outstanding</TableHead>
-                  <TableHead>EMI</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+        {/* Loans Table */}
+        <motion.div variants={itemVariants}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">All Loans</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-left">Name</TableHead>
+                      <TableHead className="text-right">Total Amount</TableHead>
+                      <TableHead className="text-right">Outstanding</TableHead>
+                      <TableHead className="text-right">EMI</TableHead>
+                      <TableHead className="text-left hidden sm:table-cell">Duration</TableHead>
+                      <TableHead className="text-center hidden md:table-cell">Progress</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
               <TableBody>
                 {loans.map((loan) => {
                   const progress = calculateProgress(loan.total_amount, loan.outstanding_balance)
@@ -505,18 +511,24 @@ export default function LoansPage() {
                     <TableRow key={loan.id}>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <PiggyBank className="w-4 h-4 text-destructive" />
-                          <span>{loan.name}</span>
+                          <PiggyBank className="w-4 h-4 text-destructive flex-shrink-0" />
+                          <span className="truncate">{loan.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{formatCurrency(loan.total_amount)}</TableCell>
-                      <TableCell className="font-semibold text-red-400">
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(loan.total_amount)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-red-400">
                         {formatCurrency(loan.outstanding_balance)}
                       </TableCell>
-                      <TableCell>{formatCurrency(loan.emi_amount)}</TableCell>
-                      <TableCell>{loan.duration_months} months</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(loan.emi_amount)}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {loan.duration_months} months
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className="w-16 bg-secondary rounded-full h-2">
                             <div
                               className="bg-green-400 h-2 rounded-full"
@@ -527,10 +539,11 @@ export default function LoansPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center space-x-1">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleEdit(loan)}
                           >
                             <Edit className="w-4 h-4" />
@@ -538,6 +551,7 @@ export default function LoansPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleDelete(loan.id)}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
@@ -549,6 +563,7 @@ export default function LoansPage() {
                 })}
               </TableBody>
             </Table>
+              </div>
             {loans.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 No loans found. Add a loan to start tracking your debt.
@@ -557,6 +572,7 @@ export default function LoansPage() {
           </CardContent>
         </Card>
       </motion.div>
+      </div>
     </motion.div>
   )
 }
