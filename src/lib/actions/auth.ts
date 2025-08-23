@@ -1,9 +1,10 @@
 'use server'
 
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Database } from '@/lib/database.types'
+import { getAuthCallbackUrl } from '@/lib/site-url'
 
 async function createClient() {
   const cookieStore = await cookies()
@@ -37,13 +38,14 @@ async function createClient() {
 
 export async function signUp(email: string, password: string) {
   const supabase = await createClient()
+  const headersList = await headers()
 
   // Create the user account
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: getAuthCallbackUrl(headersList),
     },
   })
 
