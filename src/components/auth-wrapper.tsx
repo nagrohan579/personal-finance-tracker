@@ -32,14 +32,24 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     const checkAuth = async () => {
       const { data: { user }, error } = await supabase.auth.getUser()
       
+      console.log('🔍 AuthWrapper: Checking auth state', { user: user?.id, error: error?.message, pathname })
+      
       setUser(user)
       setLoading(false)
 
-      // Redirect logic
+      // Redirect logic - be more cautious about redirects
       if (!user && !isPublicPath) {
+        console.log('🔍 AuthWrapper: No user, redirecting to login')
         router.replace('/login')
       } else if (user && (pathname === '/login' || pathname === '/signup')) {
-        router.replace('/dashboard')
+        // Only redirect to dashboard if we're sure the user is valid
+        // Add a small delay to prevent race conditions during account deletion
+        setTimeout(() => {
+          if (pathname === '/login' || pathname === '/signup') {
+            console.log('🔍 AuthWrapper: User exists, redirecting to dashboard')
+            router.replace('/dashboard')
+          }
+        }, 100)
       }
     }
 
@@ -48,24 +58,35 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔍 AuthWrapper: Auth state changed', { event, hasSession: !!session, hasUser: !!session?.user })
+        
         if (event === 'SIGNED_OUT' || !session) {
+          console.log('🔍 AuthWrapper: User signed out, clearing state')
           setUser(null)
           if (!isPublicPath) {
             router.replace('/login')
           }
         } else if (event === 'SIGNED_IN' && session.user) {
+          console.log('🔍 AuthWrapper: User signed in')
           setUser(session.user)
           // Reload currency preferences when user signs in
           await reloadPreferences()
           if (pathname === '/login' || pathname === '/signup') {
             router.replace('/dashboard')
           }
+        } else if (event === 'TOKEN_REFRESHED' && !session?.user) {
+          // Handle case where token refresh fails (user might be deleted)
+          console.log('🔍 AuthWrapper: Token refresh failed, user might be deleted')
+          setUser(null)
+          if (!isPublicPath) {
+            router.replace('/login')
+          }
         }
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [router, pathname, isPublicPath, supabase.auth])
+  }, [router, pathname, isPublicPath, supabase.auth, reloadPreferences])
 
   if (loading) {
     return (

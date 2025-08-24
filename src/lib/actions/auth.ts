@@ -101,84 +101,128 @@ export async function getUser() {
 }
 
 export async function deleteUserAccount() {
+  console.log('🚀 Starting deleteUserAccount function')
+  
   const supabase = await createClient()
 
   // Get the current user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
+  console.log('👤 Auth check - user:', user?.id, 'email:', user?.email, 'authError:', authError?.message)
+  
   if (authError || !user) {
+    console.log('❌ User not authenticated, throwing error')
     throw new Error('User not authenticated')
   }
 
   try {
-    // Delete all user data from the database
-    // Note: We'll ignore errors for empty tables since that's expected
+    console.log('🗑️ Starting data deletion for user:', user.id)
     
     // Delete financial accounts (this will cascade to transactions if set up properly)
+    console.log('💾 Deleting financial accounts...')
     const { error: accountsError } = await supabase
       .from('financial_accounts')
       .delete()
       .eq('user_id', user.id)
     
+    console.log('💾 Financial accounts deletion result:', { accountsError: accountsError?.message })
     if (accountsError) {
       console.warn('Error deleting financial accounts:', accountsError.message)
     }
 
     // Delete loans
+    console.log('💳 Deleting loans...')
     const { error: loansError } = await supabase
       .from('loans')
       .delete()
       .eq('user_id', user.id)
     
+    console.log('💳 Loans deletion result:', { loansError: loansError?.message })
     if (loansError) {
       console.warn('Error deleting loans:', loansError.message)
     }
 
     // Delete recurring transactions
+    console.log('🔄 Deleting recurring transactions...')
     const { error: recurringError } = await supabase
       .from('recurring_transactions')
       .delete()
       .eq('user_id', user.id)
     
+    console.log('🔄 Recurring transactions deletion result:', { recurringError: recurringError?.message })
     if (recurringError) {
       console.warn('Error deleting recurring transactions:', recurringError.message)
     }
 
     // Delete transactions (if not cascade deleted)
+    console.log('💰 Deleting transactions...')
     const { error: transactionsError } = await supabase
       .from('transactions')
       .delete()
       .eq('user_id', user.id)
     
+    console.log('💰 Transactions deletion result:', { transactionsError: transactionsError?.message })
     if (transactionsError) {
       console.warn('Error deleting transactions:', transactionsError.message)
     }
 
     // Delete user preferences
+    console.log('⚙️ Deleting user preferences...')
     const { error: preferencesError } = await supabase
       .from('user_preferences')
       .delete()
       .eq('user_id', user.id)
     
+    console.log('⚙️ User preferences deletion result:', { preferencesError: preferencesError?.message })
     if (preferencesError) {
       console.warn('Error deleting user preferences:', preferencesError.message)
     }
 
-    // Sign out the user (this will invalidate the session)
+    // Delete the user from auth.users using the PostgreSQL function
+    // This must be done BEFORE sign out so auth.uid() still works
+    console.log('🎯 About to call PostgreSQL function delete_user_account for user:', user.id)
+    const { error: authUserDeleteError } = await supabase.rpc('delete_user_account')
+    
+    console.log('🎯 PostgreSQL function call completed. Result:', { 
+      authUserDeleteError: authUserDeleteError?.message || 'No error',
+      errorCode: authUserDeleteError?.code,
+      errorDetails: authUserDeleteError?.details,
+      fullError: authUserDeleteError
+    })
+    
+    if (authUserDeleteError) {
+      console.log('❌ RPC call failed, throwing error')
+      throw new Error(`Failed to delete user account: ${authUserDeleteError.message}`)
+    }
+
+    // Sign out to clear server-side session after user deletion
+    console.log('🚪 Signing out to clear server-side session after user deletion')
     const { error: signOutError } = await supabase.auth.signOut()
     
     if (signOutError) {
-      throw new Error(`Failed to sign out: ${signOutError.message}`)
+      console.log('⚠️ Warning: Could not sign out after deletion:', signOutError.message)
+      // Continue anyway since user is already deleted
+    } else {
+      console.log('✅ User signed out successfully after deletion')
     }
+    
+    console.log('✅ All deletions completed successfully, user deleted from auth.users')
 
   } catch (error) {
-    // Only throw errors for critical failures (like sign out), not for empty table deletions
-    if (error instanceof Error && error.message.includes('sign out')) {
+    console.log('❌ Error caught in deleteUserAccount:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : 'No stack',
+      fullError: error
+    })
+    
+    // Throw all errors since we want to know if account deletion failed
+    if (error instanceof Error) {
       throw error
     }
-    console.warn('Non-critical error during account deletion:', error)
+    throw new Error('Failed to delete user account')
   }
 
-  // Redirect to login page
-  redirect('/login')
+  console.log('✅ Account deletion completed successfully')
+  // Note: Redirect will be handled by the client
 }

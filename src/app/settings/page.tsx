@@ -54,6 +54,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [accountDeleting, setAccountDeleting] = useState(false)
 
   useEffect(() => {
     const fetchPreferences = async () => {
@@ -85,18 +86,47 @@ export default function SettingsPage() {
   }
 
   const handleDeleteAccount = async () => {
+    console.log('🔥 CLIENT: About to call deleteUserAccount server action')
     setDeleting(true)
+    setDeleteDialogOpen(false) // Close dialog immediately
+    setAccountDeleting(true) // Show full-screen overlay
+    
     try {
+      console.log('🔥 CLIENT: Calling deleteUserAccount...')
       await deleteUserAccount()
-      // The deleteUserAccount function will handle the redirect
-      toast.success('Account deleted successfully!')
+      console.log('🔥 CLIENT: deleteUserAccount completed successfully')
+      
+      // Don't show toast since we're redirecting
+      console.log('🔥 CLIENT: Account deletion successful, clearing everything...')
+      
+      // Aggressively clear all client-side data
+      console.log('🔥 CLIENT: Aggressively clearing all client-side data')
+      
+      // Clear storage
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(cookie => {
+        const eqPos = cookie.indexOf("=")
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+        document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`
+        document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+      })
+      
+      console.log('🔥 CLIENT: All data cleared, forcing hard redirect to login')
+      
+      // Force hard redirect with no history
+      window.location.replace('/login')
     } catch (error) {
+      console.log('🔥 CLIENT: deleteUserAccount threw error:', error)
       console.error('Failed to delete account:', error)
       // Show error message to user
       toast.error('Failed to delete account. Please try again.')
-    } finally {
+      
+      // Reset states on error
+      setAccountDeleting(false)
       setDeleting(false)
-      setDeleteDialogOpen(false)
     }
   }
 
@@ -119,6 +149,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <>
     <motion.div
       variants={containerVariants}
       initial="hidden"
@@ -300,5 +331,36 @@ export default function SettingsPage() {
         </Card>
       </motion.div>
     </motion.div>
+
+    {/* Full-screen overlay during account deletion */}
+    {accountDeleting && (
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center space-y-6">
+              <motion.div
+                animate={{
+                  rotate: 360
+                }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
+              />
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">Deleting Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Please wait while we permanently delete your account and all associated data.
+                  This may take a few moments.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )}
+  </>
   )
 }
