@@ -131,6 +131,30 @@ export default function TransactionForm({ trigger, onSuccess }: TransactionFormP
     to_account_id: '',
   })
 
+  const handleOpenDialog = async () => {
+    try {
+      const accountsData = await getAccounts()
+      
+      // Check if no accounts exist and show toast notification
+      if (accountsData.length === 0) {
+        toast.error('No bank accounts found. Please create an account first before adding transactions.', {
+          duration: 5000,
+          action: {
+            label: 'Create Account',
+            onClick: () => window.location.href = '/accounts'
+          }
+        })
+        return // Don't open the dialog
+      }
+      
+      setAccounts(accountsData)
+      setOpen(true)
+    } catch (error) {
+      console.error('Failed to fetch accounts:', error)
+      toast.error('Failed to load accounts. Please try again.')
+    }
+  }
+
   useEffect(() => {
     async function fetchAccounts() {
       try {
@@ -269,14 +293,14 @@ export default function TransactionForm({ trigger, onSuccess }: TransactionFormP
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <div onClick={handleOpenDialog}>
         {trigger || (
           <Button>
             <Plus className="w-4 h-4 mr-2" />
             Add Transaction
           </Button>
         )}
-      </DialogTrigger>
+      </div>
       <DialogContent className="sm:max-w-[425px]">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
