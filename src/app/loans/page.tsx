@@ -374,38 +374,33 @@ export default function LoansPage() {
       </div>
 
       <div className="p-4 lg:p-8 space-y-6">
-        {/* Summary Cards */}
+        {/* Summary Card */}
         <motion.div variants={itemVariants}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-muted-foreground">Total Loans</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xl sm:text-2xl font-bold">{loans.length}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-muted-foreground">Total Debt</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xl sm:text-2xl font-bold text-red-400">
-                  {formatCurrency(totalDebt)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xl sm:text-2xl font-bold text-green-400">
-                  {formatCurrency(totalOriginal - totalDebt)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Loan Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Total Loans</p>
+                  <p className="text-xl sm:text-2xl font-bold">{loans.length}</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Total Debt</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-400">
+                    {formatCurrency(totalDebt)}
+                  </p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Total Paid</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-400">
+                    {formatCurrency(totalOriginal - totalDebt)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Loans Grid */}
