@@ -410,7 +410,7 @@ export default function LoansPage() {
 
         {/* Loans Grid */}
         <motion.div variants={itemVariants}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {loans.map((loan) => {
               const progress = calculateProgress(loan.total_amount, loan.outstanding_balance)
               return (
@@ -490,18 +490,18 @@ export default function LoansPage() {
             <CardHeader>
               <CardTitle className="text-lg">All Loans</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <Table className="min-w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-left">Name</TableHead>
-                      <TableHead className="text-right">Total Amount</TableHead>
-                      <TableHead className="text-right">Outstanding</TableHead>
-                      <TableHead className="text-right">EMI</TableHead>
-                      <TableHead className="text-left hidden sm:table-cell">Duration</TableHead>
-                      <TableHead className="text-center hidden md:table-cell">Progress</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
+                      <TableHead className="text-left min-w-[120px]">Name</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Total Amount</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Outstanding</TableHead>
+                      <TableHead className="text-right min-w-[80px]">EMI</TableHead>
+                      <TableHead className="text-left hidden sm:table-cell min-w-[80px]">Duration</TableHead>
+                      <TableHead className="text-center hidden md:table-cell min-w-[120px]">Progress</TableHead>
+                      <TableHead className="text-center min-w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
               <TableBody>
@@ -509,22 +509,22 @@ export default function LoansPage() {
                   const progress = calculateProgress(loan.total_amount, loan.outstanding_balance)
                   return (
                     <TableRow key={loan.id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+                      <TableCell className="px-4">
+                        <div className="flex items-center space-x-2 min-w-0">
                           <PiggyBank className="w-4 h-4 text-destructive flex-shrink-0" />
-                          <span className="truncate">{loan.name}</span>
+                          <span className="truncate text-sm">{loan.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right font-medium px-2 text-sm">
                         {formatCurrency(loan.total_amount)}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-red-400">
+                      <TableCell className="text-right font-semibold text-red-400 px-2 text-sm">
                         {formatCurrency(loan.outstanding_balance)}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right font-medium px-2 text-sm">
                         {formatCurrency(loan.emi_amount)}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
+                      <TableCell className="hidden sm:table-cell text-sm px-2">
                         {loan.duration_months} months
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
@@ -538,7 +538,7 @@ export default function LoansPage() {
                           <span className="text-sm">{progress.toFixed(0)}%</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2">
                         <div className="flex items-center justify-center space-x-1">
                           <Button
                             variant="ghost"
@@ -546,7 +546,7 @@ export default function LoansPage() {
                             className="h-8 w-8 p-0"
                             onClick={() => handleEdit(loan)}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3 h-3" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -554,7 +554,7 @@ export default function LoansPage() {
                             className="h-8 w-8 p-0"
                             onClick={() => handleDelete(loan.id)}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-3 h-3 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>
@@ -564,11 +564,11 @@ export default function LoansPage() {
               </TableBody>
             </Table>
               </div>
-            {loans.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No loans found. Add a loan to start tracking your debt.
-              </div>
-            )}
+              {loans.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground px-4">
+                  No loans found. Add a loan to start tracking your debt.
+                </div>
+              )}
           </CardContent>
         </Card>
       </motion.div>
