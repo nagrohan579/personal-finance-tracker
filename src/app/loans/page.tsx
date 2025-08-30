@@ -490,18 +490,18 @@ export default function LoansPage() {
             <CardHeader>
               <CardTitle className="text-lg">All Loans</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <Table className="min-w-full">
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-left min-w-[120px]">Name</TableHead>
-                      <TableHead className="text-right min-w-[100px]">Total Amount</TableHead>
-                      <TableHead className="text-right min-w-[100px]">Outstanding</TableHead>
-                      <TableHead className="text-right min-w-[80px]">EMI</TableHead>
-                      <TableHead className="text-left hidden sm:table-cell min-w-[80px]">Duration</TableHead>
-                      <TableHead className="text-center hidden md:table-cell min-w-[120px]">Progress</TableHead>
-                      <TableHead className="text-center min-w-[80px]">Actions</TableHead>
+                      <TableHead className="text-left">Name</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Total Amount</TableHead>
+                      <TableHead className="text-right">Outstanding</TableHead>
+                      <TableHead className="text-right hidden md:table-cell">EMI</TableHead>
+                      <TableHead className="text-left hidden lg:table-cell">Duration</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Progress</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
               <TableBody>
@@ -509,25 +509,30 @@ export default function LoansPage() {
                   const progress = calculateProgress(loan.total_amount, loan.outstanding_balance)
                   return (
                     <TableRow key={loan.id}>
-                      <TableCell className="px-4">
-                        <div className="flex items-center space-x-2 min-w-0">
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
                           <PiggyBank className="w-4 h-4 text-destructive flex-shrink-0" />
-                          <span className="truncate text-sm">{loan.name}</span>
+                          <div className="min-w-0">
+                            <span className="truncate font-medium">{loan.name}</span>
+                            <div className="text-xs text-muted-foreground sm:hidden">
+                              EMI: {formatCurrency(loan.emi_amount)}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-medium px-2 text-sm">
+                      <TableCell className="text-right font-medium hidden sm:table-cell">
                         {formatCurrency(loan.total_amount)}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-red-400 px-2 text-sm">
+                      <TableCell className="text-right font-semibold text-red-400">
                         {formatCurrency(loan.outstanding_balance)}
                       </TableCell>
-                      <TableCell className="text-right font-medium px-2 text-sm">
+                      <TableCell className="text-right font-medium hidden md:table-cell">
                         {formatCurrency(loan.emi_amount)}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm px-2">
+                      <TableCell className="hidden lg:table-cell">
                         {loan.duration_months} months
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center justify-center space-x-2">
                           <div className="w-16 bg-secondary rounded-full h-2">
                             <div
@@ -538,7 +543,7 @@ export default function LoansPage() {
                           <span className="text-sm">{progress.toFixed(0)}%</span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-2">
+                      <TableCell>
                         <div className="flex items-center justify-center space-x-1">
                           <Button
                             variant="ghost"
@@ -546,7 +551,7 @@ export default function LoansPage() {
                             className="h-8 w-8 p-0"
                             onClick={() => handleEdit(loan)}
                           >
-                            <Edit className="w-3 h-3" />
+                            <Edit className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -554,7 +559,7 @@ export default function LoansPage() {
                             className="h-8 w-8 p-0"
                             onClick={() => handleDelete(loan.id)}
                           >
-                            <Trash2 className="w-3 h-3 text-destructive" />
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>
@@ -565,7 +570,7 @@ export default function LoansPage() {
             </Table>
               </div>
               {loans.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground px-4">
+                <div className="text-center py-8 text-muted-foreground">
                   No loans found. Add a loan to start tracking your debt.
                 </div>
               )}
