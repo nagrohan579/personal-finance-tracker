@@ -89,7 +89,7 @@ export default function LoansPage() {
   const fetchLoans = async () => {
     try {
       const data = await getLoans()
-      setLoans(data)
+      setLoans(data as any)
     } catch (error) {
       console.error('Failed to fetch loans:', error)
     } finally {
@@ -142,12 +142,12 @@ export default function LoansPage() {
         return
       }
 
-      // Create loan data with validated numbers
+      // Create loan data with validated numbers (converted to strings for encryption)
       const loanData = {
         name: formData.name,
-        total_amount: totalAmountValidation.value,
-        outstanding_balance: balanceValidation.value,
-        emi_amount: emiValidation.value,
+        total_amount: totalAmountValidation.value.toString(),
+        outstanding_balance: balanceValidation.value.toString(),
+        emi_amount: emiValidation.value.toString(),
         start_date: formData.start_date,
         duration_months: Math.round(durationValidation.value), // Ensure it's an integer
       }

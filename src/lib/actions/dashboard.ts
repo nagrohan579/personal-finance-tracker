@@ -12,8 +12,8 @@ export async function getDashboardStats() {
       getLoans()
     ])
 
-    // Calculate total balance across all accounts
-    const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0)
+    // Calculate total balance across all accounts (decrypted data returns numbers)
+    const totalBalance = accounts.reduce((sum, account) => sum + (account.balance as any as number), 0)
 
     // Calculate monthly income and expenses
     const currentMonth = new Date().getMonth()
@@ -27,20 +27,20 @@ export async function getDashboardStats() {
 
     const monthlyIncome = currentMonthTransactions
       .filter(t => t.type === 'INCOME')
-      .reduce((sum, t) => sum + t.amount, 0)
+      .reduce((sum, t) => sum + (t.amount as any as number), 0)
 
     const monthlyExpenses = currentMonthTransactions
       .filter(t => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + t.amount, 0)
+      .reduce((sum, t) => sum + (t.amount as any as number), 0)
 
-    // Calculate total loan debt
-    const totalDebt = loans.reduce((sum, loan) => sum + loan.outstanding_balance, 0)
+    // Calculate total loan debt (decrypted data returns numbers)
+    const totalDebt = loans.reduce((sum, loan) => sum + (loan.outstanding_balance as any as number), 0)
 
     // Get spending by category for current month
     const expensesByCategory = currentMonthTransactions
       .filter(t => t.type === 'EXPENSE')
       .reduce((acc, transaction) => {
-        acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount
+        acc[transaction.category] = (acc[transaction.category] || 0) + (transaction.amount as any as number)
         return acc
       }, {} as Record<string, number>)
 
@@ -101,7 +101,7 @@ export async function getMonthlyExpenseData(months: number = 6) {
         // Only include transactions from the last N months
         if (monthlyData[monthKey] !== undefined) {
           const categoryKey = transaction.category.toLowerCase().replace(/\s+/g, '')
-          monthlyData[monthKey][categoryKey] += transaction.amount
+          monthlyData[monthKey][categoryKey] += (transaction.amount as any as number)
         }
       })
     

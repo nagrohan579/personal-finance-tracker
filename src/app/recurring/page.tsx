@@ -64,7 +64,7 @@ export default function RecurringTransactionsPage() {
   const fetchRecurringTransactions = async () => {
     try {
       const data = await getRecurringTransactions()
-      setRecurringTransactions(data)
+      setRecurringTransactions(data as any)
     } catch (error) {
       console.error('Failed to fetch recurring transactions:', error)
       toast.error('Failed to load recurring transactions')

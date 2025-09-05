@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
+import { encryption } from '@/lib/encryption'
 
 export async function POST(request: Request) {
   try {
@@ -49,16 +50,17 @@ export async function POST(request: Request) {
         }
 
         // Update the account balance
+        const decryptedAmount = await encryption.decryptNumber(recurringTx.amount, recurringTx.user_id)
         let balanceChange = 0
         switch (recurringTx.type) {
           case 'INCOME':
-            balanceChange = recurringTx.amount
+            balanceChange = decryptedAmount
             break
           case 'EXPENSE':
-            balanceChange = -recurringTx.amount
+            balanceChange = -decryptedAmount
             break
           case 'INVESTMENT':
-            balanceChange = -recurringTx.amount
+            balanceChange = -decryptedAmount
             break
           case 'TRANSFER':
             balanceChange = 0
@@ -76,11 +78,14 @@ export async function POST(request: Request) {
           if (accountError) {
             console.error('Failed to get account balance:', accountError)
           } else {
-            // Update balance
-            const newBalance = account.balance + balanceChange
+            // Update balance - decrypt current balance, add change, then encrypt new balance
+            const currentBalance = await encryption.decryptNumber(account.balance as any, recurringTx.user_id)
+            const newBalance = currentBalance + balanceChange
+            const encryptedNewBalance = await encryption.encryptNumber(newBalance, recurringTx.user_id)
+            
             const { error: updateError } = await supabase
               .from('financial_accounts')
-              .update({ balance: newBalance })
+              .update({ balance: encryptedNewBalance as any })
               .eq('id', recurringTx.account_id)
 
             if (updateError) {

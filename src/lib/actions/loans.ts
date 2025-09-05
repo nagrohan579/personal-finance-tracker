@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/auth'
 import { Database } from '@/lib/database.types'
 import { revalidatePath } from 'next/cache'
+import { encryptedDb } from '@/lib/database-encrypted'
 
 type Loan = Database['public']['Tables']['loans']['Row']
 type LoanInsert = Database['public']['Tables']['loans']['Insert']
@@ -22,12 +23,15 @@ async function getAuthenticatedUser() {
 export async function createLoan(data: Omit<LoanInsert, 'user_id'>) {
   const { supabase, user } = await getAuthenticatedUser()
   
+  // Encrypt sensitive data
+  const encryptedData = await encryptedDb.encryptLoanData({
+    ...data,
+    user_id: user.id
+  }, user.id)
+
   const { data: loan, error } = await supabase
     .from('loans')
-    .insert({
-      ...data,
-      user_id: user.id
-    })
+    .insert(encryptedData as any)
     .select()
     .single()
 
@@ -35,9 +39,12 @@ export async function createLoan(data: Omit<LoanInsert, 'user_id'>) {
     throw new Error(`Failed to create loan: ${error.message}`)
   }
 
+  // Decrypt the returned loan for client
+  const decryptedLoan = await encryptedDb.decryptLoan(loan, user.id)
+
   revalidatePath('/loans')
   revalidatePath('/dashboard')
-  return loan
+  return decryptedLoan
 }
 
 export async function getLoans(): Promise<Loan[]> {
@@ -53,15 +60,24 @@ export async function getLoans(): Promise<Loan[]> {
     throw new Error(`Failed to fetch loans: ${error.message}`)
   }
 
-  return loans || []
+  if (!loans || loans.length === 0) {
+    return []
+  }
+
+  // Batch decrypt all loans
+  const decryptedLoans = await encryptedDb.batchDecryptLoans(loans, user.id)
+  return decryptedLoans
 }
 
 export async function updateLoan(id: string, data: Omit<LoanUpdate, 'user_id' | 'id'>) {
   const { supabase, user } = await getAuthenticatedUser()
   
+  // Encrypt sensitive data
+  const encryptedData = await encryptedDb.encryptLoanData(data, user.id)
+
   const { data: loan, error } = await supabase
     .from('loans')
-    .update(data)
+    .update(encryptedData as any)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()
@@ -71,9 +87,12 @@ export async function updateLoan(id: string, data: Omit<LoanUpdate, 'user_id' | 
     throw new Error(`Failed to update loan: ${error.message}`)
   }
 
+  // Decrypt the returned loan for client
+  const decryptedLoan = await encryptedDb.decryptLoan(loan, user.id)
+
   revalidatePath('/loans')
   revalidatePath('/dashboard')
-  return loan
+  return decryptedLoan
 }
 
 export async function deleteLoan(id: string) {

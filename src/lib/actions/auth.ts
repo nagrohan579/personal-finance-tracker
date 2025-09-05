@@ -5,6 +5,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Database } from '@/lib/database.types'
 import { getAuthCallbackUrl } from '@/lib/site-url'
+import { createUserEncryptionKey } from '@/lib/encryption'
 
 async function createClient() {
   const cookieStore = await cookies()
@@ -51,6 +52,17 @@ export async function signUp(email: string, password: string) {
 
   if (error) {
     throw new Error(error.message)
+  }
+
+  // Generate encryption key for the new user if user was created
+  if (data.user && data.user.id) {
+    try {
+      await createUserEncryptionKey(data.user.id)
+    } catch (keyError) {
+      console.error('Failed to create encryption key for user:', keyError)
+      // Note: We could delete the user here if key creation fails
+      // but for now, we'll let it continue and handle missing keys gracefully
+    }
   }
 
   return data

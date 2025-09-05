@@ -426,7 +426,7 @@ export default function AccountsPage() {
                             {new Date(account.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="w-auto">
-                            <div className="flex items-center space-x-1">
+                            <div className="flex items-center justify-center space-x-1">
                               <Button
                                 variant="ghost"
                                 size="sm"

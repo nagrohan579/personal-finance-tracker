@@ -4,6 +4,8 @@ import { createClient } from '@/lib/auth'
 import { Database } from '@/lib/database.types'
 import { createTransaction } from '@/lib/actions/transactions'
 import { revalidatePath } from 'next/cache'
+import { encryptedDb } from '@/lib/database-encrypted'
+import { encryption } from '@/lib/encryption'
 
 type RecurringTransaction = Database['public']['Tables']['recurring_transactions']['Row']
 type RecurringTransactionInsert = Database['public']['Tables']['recurring_transactions']['Insert']
@@ -33,13 +35,16 @@ export async function createRecurringTransaction(data: Omit<RecurringTransaction
     nextDueDate.setFullYear(nextDueDate.getFullYear() + 1)
   }
   
+  // Encrypt sensitive data
+  const encryptedData = await encryptedDb.encryptRecurringTransactionData({
+    ...data,
+    user_id: user.id,
+    next_due_date: nextDueDate.toISOString().split('T')[0]
+  }, user.id)
+
   const { data: recurringTransaction, error } = await supabase
     .from('recurring_transactions')
-    .insert({
-      ...data,
-      user_id: user.id,
-      next_due_date: nextDueDate.toISOString().split('T')[0]
-    })
+    .insert(encryptedData as any)
     .select()
     .single()
 
@@ -47,9 +52,12 @@ export async function createRecurringTransaction(data: Omit<RecurringTransaction
     throw new Error(`Failed to create recurring transaction: ${error.message}`)
   }
 
+  // Decrypt the returned transaction for client
+  const decryptedTransaction = await encryptedDb.decryptRecurringTransaction(recurringTransaction, user.id)
+
   revalidatePath('/transactions')
   revalidatePath('/dashboard')
-  return recurringTransaction
+  return decryptedTransaction
 }
 
 export async function getRecurringTransactions(): Promise<(RecurringTransaction & { financial_accounts: { name: string; type: string } })[]> {
@@ -71,15 +79,40 @@ export async function getRecurringTransactions(): Promise<(RecurringTransaction 
     throw new Error(`Failed to fetch recurring transactions: ${error.message}`)
   }
 
-  return recurringTransactions || []
+  if (!recurringTransactions || recurringTransactions.length === 0) {
+    return []
+  }
+
+  // Batch decrypt all recurring transactions
+  const decryptedTransactions = await encryptedDb.batchDecryptRecurringTransactions(recurringTransactions, user.id)
+  
+  // Also need to decrypt account names in the joined data
+  const processedTransactions = await Promise.all(
+    decryptedTransactions.map(async (tx: any) => {
+      const result = { ...tx }
+      if (tx.financial_accounts && tx.financial_accounts.name) {
+        // Decrypt the account name
+        result.financial_accounts = {
+          ...tx.financial_accounts,
+          name: await encryption.decryptString(tx.financial_accounts.name, user.id)
+        }
+      }
+      return result
+    })
+  )
+
+  return processedTransactions as any
 }
 
 export async function updateRecurringTransaction(id: string, data: Omit<RecurringTransactionUpdate, 'user_id'>) {
   const { supabase, user } = await getAuthenticatedUser()
   
+  // Encrypt sensitive data
+  const encryptedData = await encryptedDb.encryptRecurringTransactionData(data, user.id)
+
   const { data: recurringTransaction, error } = await supabase
     .from('recurring_transactions')
-    .update(data)
+    .update(encryptedData as any)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()
@@ -89,9 +122,12 @@ export async function updateRecurringTransaction(id: string, data: Omit<Recurrin
     throw new Error(`Failed to update recurring transaction: ${error.message}`)
   }
 
+  // Decrypt the returned transaction for client
+  const decryptedTransaction = await encryptedDb.decryptRecurringTransaction(recurringTransaction, user.id)
+
   revalidatePath('/transactions')
   revalidatePath('/dashboard')
-  return recurringTransaction
+  return decryptedTransaction
 }
 
 export async function deleteRecurringTransaction(id: string) {

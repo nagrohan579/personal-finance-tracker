@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { Database } from '@/lib/database.types'
+import { createUserEncryptionKey } from '@/lib/encryption'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -31,6 +32,27 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
+      // Check if user has an encryption key, create one if they don't
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        // Check if encryption key exists
+        const { data: existingKey } = await supabase
+          .from('user_encryption_keys')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .single()
+
+        // If no key exists, create one
+        if (!existingKey) {
+          try {
+            await createUserEncryptionKey(user.id)
+          } catch (keyError) {
+            console.error('Failed to create encryption key during callback:', keyError)
+          }
+        }
+      }
+      
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

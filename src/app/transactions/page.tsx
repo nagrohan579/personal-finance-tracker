@@ -93,8 +93,8 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     try {
       const data = await getTransactions()
-      setTransactions(data)
-      setFilteredTransactions(data)
+      setTransactions(data as any)
+      setFilteredTransactions(data as any)
     } catch (error) {
       console.error('Failed to fetch transactions:', error)
     } finally {

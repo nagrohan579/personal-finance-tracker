@@ -227,7 +227,7 @@ export default function TransactionForm({ trigger, onSuccess }: TransactionFormP
         const recurringData = {
           account_id: formData.account_id,
           description: formData.notes || `${formData.type} - ${formData.category}`,
-          amount: amountValidation.value,
+          amount: amountValidation.value.toString(),
           type: formData.type,
           category: formData.category,
           frequency: formData.frequency,
@@ -241,7 +241,7 @@ export default function TransactionForm({ trigger, onSuccess }: TransactionFormP
         // Create one-time transaction
         const transactionData = {
           account_id: formData.account_id,
-          amount: amountValidation.value,
+          amount: amountValidation.value.toString(),
           type: formData.type,
           category: formData.category,
           notes: formData.notes,

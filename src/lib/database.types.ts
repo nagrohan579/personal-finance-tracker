@@ -42,7 +42,7 @@ export type Database = {
           user_id: string
           account_id: string
           to_account_id: string | null
-          amount: number
+          amount: string
           type: 'INCOME' | 'EXPENSE' | 'INVESTMENT' | 'TRANSFER'
           category: string
           notes: string | null
@@ -54,7 +54,7 @@ export type Database = {
           user_id: string
           account_id: string
           to_account_id?: string | null
-          amount: number
+          amount: string
           type: 'INCOME' | 'EXPENSE' | 'INVESTMENT' | 'TRANSFER'
           category: string
           notes?: string | null
@@ -66,7 +66,7 @@ export type Database = {
           user_id?: string
           account_id?: string
           to_account_id?: string | null
-          amount?: number
+          amount?: string
           type?: 'INCOME' | 'EXPENSE' | 'INVESTMENT' | 'TRANSFER'
           category?: string
           notes?: string | null
@@ -95,9 +95,9 @@ export type Database = {
           id: string
           user_id: string
           name: string
-          total_amount: number
-          outstanding_balance: number
-          emi_amount: number
+          total_amount: string
+          outstanding_balance: string
+          emi_amount: string
           start_date: string
           duration_months: number
           created_at: string
@@ -106,9 +106,9 @@ export type Database = {
           id?: string
           user_id: string
           name: string
-          total_amount: number
-          outstanding_balance: number
-          emi_amount: number
+          total_amount: string
+          outstanding_balance: string
+          emi_amount: string
           start_date: string
           duration_months: number
           created_at?: string
@@ -117,9 +117,9 @@ export type Database = {
           id?: string
           user_id?: string
           name?: string
-          total_amount?: number
-          outstanding_balance?: number
-          emi_amount?: number
+          total_amount?: string
+          outstanding_balance?: string
+          emi_amount?: string
           start_date?: string
           duration_months?: number
           created_at?: string
@@ -133,7 +133,7 @@ export type Database = {
           account_id: string
           to_account_id: string | null
           description: string
-          amount: number
+          amount: string
           type: 'INCOME' | 'EXPENSE' | 'INVESTMENT' | 'TRANSFER'
           category: string
           frequency: 'MONTHLY' | 'YEARLY'
@@ -147,7 +147,7 @@ export type Database = {
           account_id: string
           to_account_id?: string | null
           description: string
-          amount: number
+          amount: string
           type: 'INCOME' | 'EXPENSE' | 'INVESTMENT' | 'TRANSFER'
           category: string
           frequency: 'MONTHLY' | 'YEARLY'
@@ -161,7 +161,7 @@ export type Database = {
           account_id?: string
           to_account_id?: string | null
           description?: string
-          amount?: number
+          amount?: string
           type?: 'INCOME' | 'EXPENSE' | 'INVESTMENT' | 'TRANSFER'
           category?: string
           frequency?: 'MONTHLY' | 'YEARLY'
@@ -198,6 +198,24 @@ export type Database = {
         Update: {
           user_id?: string
           preferences?: Json
+        }
+        Relationships: []
+      }
+      user_encryption_keys: {
+        Row: {
+          user_id: string
+          encryption_key: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          encryption_key: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          encryption_key?: string
+          created_at?: string
         }
         Relationships: []
       }

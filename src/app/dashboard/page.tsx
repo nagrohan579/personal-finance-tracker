@@ -89,7 +89,7 @@ export default function DashboardPage() {
         getMonthlyExpenseData(6)
       ])
       setStats(dashboardStats)
-      setRecentTransactions(transactions)
+      setRecentTransactions(transactions as any)
       setMonthlyExpenseData(monthlyData)
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)

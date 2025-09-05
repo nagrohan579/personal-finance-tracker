@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/auth'
 import { Database } from '@/lib/database.types'
 import { revalidatePath } from 'next/cache'
+import { encryptedDb } from '@/lib/database-encrypted'
+import { encryption } from '@/lib/encryption'
 
 type Transaction = Database['public']['Tables']['transactions']['Row']
 type TransactionInsert = Database['public']['Tables']['transactions']['Insert']
@@ -20,29 +22,14 @@ async function getAuthenticatedUser() {
 }
 
 async function updateAccountBalance(supabase: any, accountId: string, userId: string, amount: number) {
-  // Get current balance
-  const { data: account, error: accountError } = await supabase
-    .from('financial_accounts')
-    .select('balance')
-    .eq('id', accountId)
-    .eq('user_id', userId)
-    .single()
+  // Get current encrypted balance and decrypt it
+  const currentBalance = await encryptedDb.getDecryptedBalance(accountId, userId)
 
-  if (accountError) {
-    throw new Error(`Failed to get account balance: ${accountError.message}`)
-  }
+  // Calculate new balance
+  const newBalance = currentBalance + amount
 
-  // Update balance
-  const newBalance = account.balance + amount
-  const { error: updateError } = await supabase
-    .from('financial_accounts')
-    .update({ balance: newBalance })
-    .eq('id', accountId)
-    .eq('user_id', userId)
-
-  if (updateError) {
-    throw new Error(`Failed to update account balance: ${updateError.message}`)
-  }
+  // Encrypt and update the balance
+  await encryptedDb.updateEncryptedBalance(accountId, userId, newBalance)
 }
 
 export async function createTransaction(data: Omit<TransactionInsert, 'user_id'>) {
@@ -50,19 +37,22 @@ export async function createTransaction(data: Omit<TransactionInsert, 'user_id'>
   
   // Handle transfers differently - create two separate transaction entries
   if (data.type === 'TRANSFER' && data.to_account_id) {
-    // Create outgoing transaction (negative for source account)
+    // Encrypt outgoing transaction data
+    const outgoingData = {
+      amount: data.amount,
+      type: 'TRANSFER' as const,
+      category: data.category,
+      notes: data.notes ? `Transfer to account (${data.notes})` : 'Transfer to account',
+      date: data.date,
+      account_id: data.account_id,
+      to_account_id: data.to_account_id,
+      user_id: user.id
+    }
+    const encryptedOutgoingData = await encryptedDb.encryptTransactionData(outgoingData, user.id)
+
     const { data: outgoingTransaction, error: outgoingError } = await supabase
       .from('transactions')
-      .insert({
-        amount: data.amount,
-        type: 'TRANSFER',
-        category: data.category,
-        notes: data.notes ? `Transfer to account (${data.notes})` : 'Transfer to account',
-        date: data.date,
-        account_id: data.account_id,
-        to_account_id: data.to_account_id,
-        user_id: user.id
-      })
+      .insert(encryptedOutgoingData as any)
       .select()
       .single()
 
@@ -70,19 +60,22 @@ export async function createTransaction(data: Omit<TransactionInsert, 'user_id'>
       throw new Error(`Failed to create outgoing transfer: ${outgoingError.message}`)
     }
 
-    // Create incoming transaction (positive for destination account)
+    // Encrypt incoming transaction data
+    const incomingData = {
+      amount: data.amount,
+      type: 'TRANSFER' as const,
+      category: data.category,
+      notes: data.notes ? `Transfer from account (${data.notes})` : 'Transfer from account',
+      date: data.date,
+      account_id: data.to_account_id,
+      to_account_id: data.account_id,
+      user_id: user.id
+    }
+    const encryptedIncomingData = await encryptedDb.encryptTransactionData(incomingData, user.id)
+
     const { data: incomingTransaction, error: incomingError } = await supabase
       .from('transactions')
-      .insert({
-        amount: data.amount,
-        type: 'TRANSFER',
-        category: data.category,
-        notes: data.notes ? `Transfer from account (${data.notes})` : 'Transfer from account',
-        date: data.date,
-        account_id: data.to_account_id,
-        to_account_id: data.account_id, // Reference back to source account
-        user_id: user.id
-      })
+      .insert(encryptedIncomingData as any)
       .select()
       .single()
 
@@ -91,22 +84,27 @@ export async function createTransaction(data: Omit<TransactionInsert, 'user_id'>
     }
 
     // Update both account balances
-    await updateAccountBalance(supabase, data.account_id, user.id, -data.amount)
-    await updateAccountBalance(supabase, data.to_account_id, user.id, data.amount)
+    await updateAccountBalance(supabase, data.account_id, user.id, -(data.amount as any as number))
+    await updateAccountBalance(supabase, data.to_account_id, user.id, (data.amount as any as number))
 
     revalidatePath('/transactions')
     revalidatePath('/dashboard')
     revalidatePath('/accounts')
-    return outgoingTransaction
+    
+    // Return decrypted outgoing transaction
+    const decryptedTransaction = await encryptedDb.decryptTransaction(outgoingTransaction, user.id)
+    return decryptedTransaction
   }
 
-  // For non-transfer transactions, use the original logic
+  // For non-transfer transactions, encrypt the data
+  const encryptedData = await encryptedDb.encryptTransactionData({
+    ...data,
+    user_id: user.id
+  }, user.id)
+
   const { data: transaction, error: transactionError } = await supabase
     .from('transactions')
-    .insert({
-      ...data,
-      user_id: user.id
-    })
+    .insert(encryptedData as any)
     .select()
     .single()
 
@@ -118,22 +116,25 @@ export async function createTransaction(data: Omit<TransactionInsert, 'user_id'>
   switch (data.type) {
     case 'INCOME':
       // Add income to the account balance
-      await updateAccountBalance(supabase, data.account_id, user.id, data.amount)
+      await updateAccountBalance(supabase, data.account_id, user.id, (data.amount as any as number))
       break
     case 'EXPENSE':
       // Subtract expense from the account balance
-      await updateAccountBalance(supabase, data.account_id, user.id, -data.amount)
+      await updateAccountBalance(supabase, data.account_id, user.id, -(data.amount as any as number))
       break
     case 'INVESTMENT':
       // Subtract investment from the account balance (money going out)
-      await updateAccountBalance(supabase, data.account_id, user.id, -data.amount)
+      await updateAccountBalance(supabase, data.account_id, user.id, -(data.amount as any as number))
       break
   }
 
   revalidatePath('/transactions')
   revalidatePath('/dashboard')
   revalidatePath('/accounts')
-  return transaction
+  
+  // Return decrypted transaction
+  const decryptedTransaction = await encryptedDb.decryptTransaction(transaction, user.id)
+  return decryptedTransaction
 }
 
 export async function getTransactions(): Promise<(Transaction & { 
@@ -156,7 +157,36 @@ export async function getTransactions(): Promise<(Transaction & {
     throw new Error(`Failed to fetch transactions: ${error.message}`)
   }
 
-  return transactions || []
+  if (!transactions || transactions.length === 0) {
+    return []
+  }
+
+  // Batch decrypt all transactions
+  const decryptedTransactions = await encryptedDb.batchDecryptTransactions(transactions, user.id)
+  
+  // Also need to decrypt account names in the joined data
+  const processedTransactions = await Promise.all(
+    decryptedTransactions.map(async (tx: any) => {
+      const result = { ...tx }
+      if (tx.financial_accounts && tx.financial_accounts.name) {
+        // Decrypt the account name
+        result.financial_accounts = {
+          ...tx.financial_accounts,
+          name: await encryption.decryptString(tx.financial_accounts.name, user.id)
+        }
+      }
+      if (tx.to_financial_accounts && tx.to_financial_accounts.name) {
+        // Decrypt the to_account name
+        result.to_financial_accounts = {
+          ...tx.to_financial_accounts,
+          name: await encryption.decryptString(tx.to_financial_accounts.name, user.id)
+        }
+      }
+      return result
+    })
+  )
+
+  return processedTransactions as any
 }
 
 export async function getRecentTransactions(limit: number = 5): Promise<(Transaction & { 
@@ -180,7 +210,36 @@ export async function getRecentTransactions(limit: number = 5): Promise<(Transac
     throw new Error(`Failed to fetch recent transactions: ${error.message}`)
   }
 
-  return transactions || []
+  if (!transactions || transactions.length === 0) {
+    return []
+  }
+
+  // Batch decrypt all transactions
+  const decryptedTransactions = await encryptedDb.batchDecryptTransactions(transactions, user.id)
+  
+  // Also need to decrypt account names in the joined data
+  const processedTransactions = await Promise.all(
+    decryptedTransactions.map(async (tx: any) => {
+      const result = { ...tx }
+      if (tx.financial_accounts && tx.financial_accounts.name) {
+        // Decrypt the account name
+        result.financial_accounts = {
+          ...tx.financial_accounts,
+          name: await encryption.decryptString(tx.financial_accounts.name, user.id)
+        }
+      }
+      if (tx.to_financial_accounts && tx.to_financial_accounts.name) {
+        // Decrypt the to_account name
+        result.to_financial_accounts = {
+          ...tx.to_financial_accounts,
+          name: await encryption.decryptString(tx.to_financial_accounts.name, user.id)
+        }
+      }
+      return result
+    })
+  )
+
+  return processedTransactions as any
 }
 
 export async function updateTransaction(id: string, data: Omit<TransactionUpdate, 'user_id' | 'id'>) {
@@ -198,9 +257,12 @@ export async function updateTransaction(id: string, data: Omit<TransactionUpdate
     throw new Error(`Failed to fetch original transaction: ${fetchError.message}`)
   }
 
+  // Encrypt the update data
+  const encryptedData = await encryptedDb.encryptTransactionData(data, user.id)
+
   const { data: transaction, error } = await supabase
     .from('transactions')
-    .update(data)
+    .update(encryptedData as any)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()
@@ -213,14 +275,17 @@ export async function updateTransaction(id: string, data: Omit<TransactionUpdate
   revalidatePath('/transactions')
   revalidatePath('/dashboard')
   revalidatePath('/accounts')
-  return transaction
+  
+  // Return decrypted transaction
+  const decryptedTransaction = await encryptedDb.decryptTransaction(transaction, user.id)
+  return decryptedTransaction
 }
 
 export async function deleteTransaction(id: string) {
   const { supabase, user } = await getAuthenticatedUser()
   
   // First, get the transaction details to reverse the account balance
-  const { data: transaction, error: fetchError } = await supabase
+  const { data: encryptedTransaction, error: fetchError } = await supabase
     .from('transactions')
     .select('*')
     .eq('id', id)
@@ -230,6 +295,9 @@ export async function deleteTransaction(id: string) {
   if (fetchError) {
     throw new Error(`Failed to fetch transaction: ${fetchError.message}`)
   }
+
+  // Decrypt the transaction to get the actual amounts for balance calculations
+  const transaction = await encryptedDb.decryptTransaction(encryptedTransaction, user.id)
 
   // For transfers, we need to handle deletion of both related transactions
   if (transaction.type === 'TRANSFER') {
@@ -283,12 +351,12 @@ export async function deleteTransaction(id: string) {
       // Reverse both account balance changes for transfers
       if (isOutgoing) {
         // Reverse outgoing: add back to source, subtract from destination
-        await updateAccountBalance(supabase, transaction.account_id, user.id, transaction.amount)
-        await updateAccountBalance(supabase, transaction.to_account_id, user.id, -transaction.amount)
+        await updateAccountBalance(supabase, transaction.account_id, user.id, (transaction.amount as any as number))
+        await updateAccountBalance(supabase, transaction.to_account_id, user.id, -(transaction.amount as any as number))
       } else {
         // Reverse incoming: subtract from destination, add back to source
-        await updateAccountBalance(supabase, transaction.account_id, user.id, -transaction.amount)
-        await updateAccountBalance(supabase, transaction.to_account_id, user.id, transaction.amount)
+        await updateAccountBalance(supabase, transaction.account_id, user.id, -(transaction.amount as any as number))
+        await updateAccountBalance(supabase, transaction.to_account_id, user.id, (transaction.amount as any as number))
       }
     }
   } else {
@@ -297,15 +365,15 @@ export async function deleteTransaction(id: string) {
     switch (transaction.type) {
       case 'INCOME':
         // Reverse income (subtract from balance)
-        await updateAccountBalance(supabase, transaction.account_id, user.id, -transaction.amount)
+        await updateAccountBalance(supabase, transaction.account_id, user.id, -(transaction.amount as any as number))
         break
       case 'EXPENSE':
         // Reverse expense (add back to balance)
-        await updateAccountBalance(supabase, transaction.account_id, user.id, transaction.amount)
+        await updateAccountBalance(supabase, transaction.account_id, user.id, (transaction.amount as any as number))
         break
       case 'INVESTMENT':
         // Reverse investment (add back to balance)
-        await updateAccountBalance(supabase, transaction.account_id, user.id, transaction.amount)
+        await updateAccountBalance(supabase, transaction.account_id, user.id, (transaction.amount as any as number))
         break
     }
   }
