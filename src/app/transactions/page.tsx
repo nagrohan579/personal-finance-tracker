@@ -243,7 +243,59 @@ export default function TransactionsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Desktop/Tablet: Search left, filters right in one line */}
+              <div className="hidden sm:flex items-center justify-between gap-4">
+                <div className="flex-1 max-w-md">
+                  <Input
+                    placeholder="Search transactions..."
+                    value={filters.search}
+                    onChange={(e) =>
+                      setFilters({ ...filters, search: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={filters.type}
+                    onValueChange={(value) =>
+                      setFilters({ ...filters, type: value })
+                    }
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All types</SelectItem>
+                      {uniqueTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={filters.category}
+                    onValueChange={(value) =>
+                      setFilters({ ...filters, category: value })
+                    }
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {uniqueCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Mobile: Search on top row, filters side by side below */}
+              <div className="sm:hidden space-y-3">
                 <div>
                   <Input
                     placeholder="Search transactions..."
@@ -253,7 +305,7 @@ export default function TransactionsPage() {
                     }
                   />
                 </div>
-                <div>
+                <div className="grid grid-cols-2 gap-2">
                   <Select
                     value={filters.type}
                     onValueChange={(value) =>
@@ -268,32 +320,30 @@ export default function TransactionsPage() {
                       {uniqueTypes.map((type) => (
                         <SelectItem key={type} value={type}>
                           {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={filters.category}
+                    onValueChange={(value) =>
+                      setFilters({ ...filters, category: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {uniqueCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Select
-                  value={filters.category}
-                  onValueChange={(value) =>
-                    setFilters({ ...filters, category: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All categories</SelectItem>
-                    {uniqueCategories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </motion.div>
